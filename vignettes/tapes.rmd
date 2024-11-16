@@ -1,0 +1,230 @@
+---
+title: "Extend TapeR by implementing sorting and related aspects of forestry in R"
+author: "Christian Vonderach"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output: rmarkdown::html_vignette
+# output: pdf_document
+vignette: >
+  %\VignetteIndexEntry{TapeS}
+  \usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## How to get the R-Package
+```{r, eval=FALSE}
+remotes::install_gitlab(„vochr/tapes“, build_vignettes = TRUE) 
+```
+
+## Basic
+This R-Package extends, adapts and realizes the methodological taper curve
+development package *TapeR* for the context of the German National Forest
+Inventory (NFI). For that purpose new taper curve models were developed on 
+extensive data from several German research stations.
+
+## Functionality
+The package aims at providing functions to evaluate TapeR-base taper curves with
+respect to diameter at given height, height of given diameter, estimating
+double bark thickness, providing volumes of total taper curve and parts of it,
+estimating total aboveground biomass and components of it. The following section
+provide examples on the data structure and how the functions can be used.
+
+### S4-classes
+The package establishes two S4-classes, which define requirements on the data
+applied to the functions. The *tprTrees*-class obviously defines trees, but 
+with a focus on sectional measurements. With that, one can provide as many
+diameters (and their measurement heights) to precisely follow its taper curve.
+But similarly, one can only provide one diameter and its measurement height for
+subsequent use of the package functions.
+```{r, eval=FALSE}
+help("tprTrees-class")
+```
+
+For estimating roundwood assortments, there is an additional S4-class 
+*parSort* which defines the sorting parameters.
+```{r, eval=FALSE}
+help("parSort-class")
+```
+
+
+### handled tree species 
+The tree species list is taken from the predecessor taper curve model BDAT. 
+Indeed, there are only *eight* taper curve models, but the other tree species
+are mapped to these eight. For future releases this might chance if further
+data leads to the development of additional taper curve models.
+```{r}
+require(TapeS)
+tprSpeciesCode(inSp = NULL, outSp = NULL)
+```
+
+### species mapping
+Beside the taper curve models, mapping between species is required also for 
+double bark thickness, biomass functions (total aboveground and component 
+biomass), minimum cutting diameter, the amount of crown wood in deciduous tree
+species and the volume for small trees according to FAO.
+
+```{r}
+BaMap(Ba = NULL, type = NULL)
+```
+
+### Defining a *tprTrees* object
+```{r}
+require(TapeS)
+obj <- tprTrees(spp=c(1, 3),
+                Hm=list(c(1.3, 5, 7), c(1.3)),
+                Dm=list(c(27, 23.5, 22.4), c(27)),
+                Ht=c(27, 30))
+Hx <- c(1.3, 5, 7)
+```
+
+### Diameter estimation
+Diameter estimation from the developed taper curves via the empirical best 
+linear unbiased predictor (EBLUP, see Kublin et al. (2013)) not necessarily  
+passed through the observations. This behaviour can be forced if the residual
+variance is set to zero. The package offers to set an option 'TapeS_R0' which,
+by default, is set to FALSE and uses full information from the models.
+
+If one wants to force the taper curves through given (measured) diameters,
+one can do so by setting TapeS::setTapeSoptions(). See further down.
+```{r}
+tprDiameter(obj, Hx = Hx) # R0=TRUE, taper curve through measurements
+tprDiameter(obj, Hx = Hx, bark = FALSE)
+tprDiameter(obj, Hx = Hx, interval = "prediction")
+```
+
+The diameter are evaluated at position Hx for each tree. If only one diameter
+is required, e.g. for relative height, the parameter cp=FALSE (no cartesian 
+product) can be used
+```{r}
+tprDiameter(obj, Hx = 0.3*Ht(obj), interval = "prediction", cp=FALSE)
+```
+
+
+### Height estimation
+```{r}
+tprHeight(obj, Dx = c(10, 9, 8, 7))
+tprHeight(obj, Dx = c(10, 9, 8, 7), bark = FALSE)
+```
+
+### Estimation of double bark thickness
+```{r}
+tprBark(obj, Hx = c(1, 2, 3))
+```
+
+
+### Volume estimation
+```{r}
+tprVolume(obj) # default is Vfm
+tprVolume(obj, AB = list(A=0, B=7), iAB=c("h", "dob"), bark=TRUE) # same
+Vfm(obj) # wrapper
+VolR(obj) # wrapper
+Efm(obj, stH = 0.01) # default
+VolE(obj)
+VolFAO(obj)
+Vfm_phys(obj) # takes a while
+Efm_phys(obj)
+tprVolume(obj, AB = list(A=0.01*Ht(obj), B=7, sl=0.01), iAB = c("H", "Dob"), bark=FALSE)
+```
+
+### Estimation of roundwood assortments
+```{r}
+tprAssortment(obj) ## default assortment parameters
+pars <- parSort(stH=0.2, Lxh=c(1, 1.5), fixN=2, fixL=4)
+tprAssortment(obj, pars = pars)
+```
+
+
+### Biomass estimation
+#### total aboveground biomass
+```{r}
+tprBiomass(obj) # bwi-biomass
+```
+
+#### component biomass
+For this package the biomass functions of Vonderach et al. (2018) have been 
+extended to include predictors D03 and crown length for the prediction of 
+several components. Although these models can estimate absolute biomass, in this
+context they are used to predict the share of each component, which is 
+multiplied by total aboveground biomass.
+```{r}
+tprBiomass(obj, component = c("sw", "sb", "ndl")) 
+tprBiomass(obj, component = c("all"))
+```
+
+
+## Option: Taper curve evaluation
+In TapeR-package, the taper curve of a tree with given diameter- and height 
+measurements is as a default realised using the estimated best linear unbiased 
+predictor (see Kublin et al. 2013, p.987). This means, that all diameters and 
+volume predictions are estimated using the intrinsic error structure of the 
+fitted taper curve model. Hence the taper curve not necessarily passes through 
+the measured diameter.
+
+For the possibility of forcing the taper curves through the measured diameters,
+the TapeR-package has been extended to allow for explicitly determining the 
+assumed residual variance. See *?TapeR::resVar*.
+
+To apply a modification of the residual variance in TapeS, one can set a 
+special package option (all called functions react to this option) or define the
+options as a parameter in each function. The package option is set by
+*TapeS_Rfn = list(fn="zero")*, here with a zero-function to force interpolation.
+```{r, eval=TRUE}
+setTapeSoptions(Rfn = list(fn="zero"))
+tprDiameter(obj, Hx=1.3)
+setTapeSoptions(Rfn = list(fn="sig2"))
+tprDiameter(obj, Hx=1.3)
+```
+By default, this option is set to "sig2" on load of the package, hence, the
+residual variance of the model is used (default behaviour of TapeR). Other 
+functions are also available, e.g. "linear", "laglinear", "biliniar", "dnorm" 
+and "dlnorm". Most function allow for defining a point of zero variance. The 
+latter two are based on the normal and log-normal distribution and allow for a
+standard deviation term.
+
+Please note: setting a zero variance should not be overstrained. It is mainly 
+implemented to preserve diameter in breast height (dbh) measurements for trees 
+of e.g. inventory data. If one is about to apply the TapeS-functions to 
+sectional data, where a lot of diameter measurements are available, the 
+*TapeS_Rfn*-Option should left as is or set to *sig2* via
+TapeS::setTapeSoptions(Rfn = list(fn="sig2")).
+
+## Option: improve monotonicity of taper curves
+Depending on the size and measurements of (especially small) trees, it sometimes
+might happen, that the calibrated taper curves have an increasing diameter
+sequence at the stem foot:
+```{r}
+plot(tprTrees(spp=3, Dm=7.9, Hm=1.3, Ht=12, ), mono=FALSE)
+```
+
+To avoid such implausible taper curves, internally an additional support 
+"measurement" at 1% of tree height is added to the set of measurements. This
+extra measurement is based on the ratio between 5% and 1% of tree height of the
+population average curve. With that, taper curves usually are monotonically 
+decreasing:
+```{r}
+plot(tprTrees(spp=3, Dm=7.9, Hm=1.3, Ht=12, ), mono=TRUE)
+```
+
+By default, *mono* is set to TRUE (must not be given) via options("TapeS_mono"),
+hence, all non-monotonic curves (check at initialisation), are amended by an
+additional support diameter.
+
+
+## References
+Kublin, E., J. Breidenbach and G. Kaendler (2013). "A flexible stem taper and 
+volume prediction method based on mixed-effects B-spline regression." European 
+Journal of forest research 132(5-6): 983-997.
+
+Vonderach, C., G. Kändler and C. F. Dormann (2018). "Consistent set of additive 
+biomass functions for eight tree species in Germany fit by nonlinear seemingly 
+unrelated regression." Annals of Forest Science 75(2): 49.
+
+## Contact
+christian.vonderach@forst.bwl.de
+
+Forest Research Institute Baden-Württemberg by order of
+Thünen Institute of Forest Ecosystems / Forest resources and climate protection
+

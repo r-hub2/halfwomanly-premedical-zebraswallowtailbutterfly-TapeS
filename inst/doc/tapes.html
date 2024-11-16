@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+<meta name="author" content="Christian Vonderach" />
+
+
+<title>Extend TapeR by implementing sorting and related aspects of forestry in R</title>
+
+<script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
+// be compatible with the behavior of Pandoc < 2.8).
+document.addEventListener('DOMContentLoaded', function(e) {
+  var hs = document.querySelectorAll("div.section[class*='level'] > :first-child");
+  var i, h, a;
+  for (i = 0; i < hs.length; i++) {
+    h = hs[i];
+    if (!/^h[1-6]$/i.test(h.tagName)) continue;  // it should be a header h1-h6
+    a = h.attributes;
+    while (a.length > 0) h.removeAttribute(a[0].name);
+  }
+});
+</script>
+
+<style type="text/css">
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+span.underline{text-decoration: underline;}
+div.column{display: inline-block; vertical-align: top; width: 50%;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+</style>
+
+
+
+<style type="text/css">
+code {
+white-space: pre;
+}
+.sourceCode {
+overflow: visible;
+}
+</style>
+<style type="text/css" data-origin="pandoc">
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+{ counter-reset: source-line 0; }
+pre.numberSource code > span
+{ position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+{ content: counter(source-line);
+position: relative; left: -1em; text-align: right; vertical-align: baseline;
+border: none; display: inline-block;
+-webkit-touch-callout: none; -webkit-user-select: none;
+-khtml-user-select: none; -moz-user-select: none;
+-ms-user-select: none; user-select: none;
+padding: 0 4px; width: 4em;
+color: #aaaaaa;
+}
+pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa; padding-left: 4px; }
+div.sourceCode
+{ }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+code span.al { color: #ff0000; font-weight: bold; } 
+code span.an { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.at { color: #7d9029; } 
+code span.bn { color: #40a070; } 
+code span.bu { color: #008000; } 
+code span.cf { color: #007020; font-weight: bold; } 
+code span.ch { color: #4070a0; } 
+code span.cn { color: #880000; } 
+code span.co { color: #60a0b0; font-style: italic; } 
+code span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.do { color: #ba2121; font-style: italic; } 
+code span.dt { color: #902000; } 
+code span.dv { color: #40a070; } 
+code span.er { color: #ff0000; font-weight: bold; } 
+code span.ex { } 
+code span.fl { color: #40a070; } 
+code span.fu { color: #06287e; } 
+code span.im { color: #008000; font-weight: bold; } 
+code span.in { color: #60a0b0; font-weight: bold; font-style: italic; } 
+code span.kw { color: #007020; font-weight: bold; } 
+code span.op { color: #666666; } 
+code span.ot { color: #007020; } 
+code span.pp { color: #bc7a00; } 
+code span.sc { color: #4070a0; } 
+code span.ss { color: #bb6688; } 
+code span.st { color: #4070a0; } 
+code span.va { color: #19177c; } 
+code span.vs { color: #4070a0; } 
+code span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } 
+</style>
+<script>
+// apply pandoc div.sourceCode style to pre.sourceCode instead
+(function() {
+  var sheets = document.styleSheets;
+  for (var i = 0; i < sheets.length; i++) {
+    if (sheets[i].ownerNode.dataset["origin"] !== "pandoc") continue;
+    try { var rules = sheets[i].cssRules; } catch (e) { continue; }
+    var j = 0;
+    while (j < rules.length) {
+      var rule = rules[j];
+      // check if there is a div.sourceCode rule
+      if (rule.type !== rule.STYLE_RULE || rule.selectorText !== "div.sourceCode") {
+        j++;
+        continue;
+      }
+      var style = rule.style.cssText;
+      // check if color or background-color is set
+      if (rule.style.color === '' && rule.style.backgroundColor === '') {
+        j++;
+        continue;
+      }
+      // replace div.sourceCode by a pre.sourceCode rule
+      sheets[i].deleteRule(j);
+      sheets[i].insertRule('pre.sourceCode{' + style + '}', j);
+    }
+  }
+})();
+</script>
+
+
+
+
+<style type="text/css">body {
+background-color: #fff;
+margin: 1em auto;
+max-width: 700px;
+overflow: visible;
+padding-left: 2em;
+padding-right: 2em;
+font-family: "Open Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+font-size: 14px;
+line-height: 1.35;
+}
+#TOC {
+clear: both;
+margin: 0 0 10px 10px;
+padding: 4px;
+width: 400px;
+border: 1px solid #CCCCCC;
+border-radius: 5px;
+background-color: #f6f6f6;
+font-size: 13px;
+line-height: 1.3;
+}
+#TOC .toctitle {
+font-weight: bold;
+font-size: 15px;
+margin-left: 5px;
+}
+#TOC ul {
+padding-left: 40px;
+margin-left: -1.5em;
+margin-top: 5px;
+margin-bottom: 5px;
+}
+#TOC ul ul {
+margin-left: -2em;
+}
+#TOC li {
+line-height: 16px;
+}
+table {
+margin: 1em auto;
+border-width: 1px;
+border-color: #DDDDDD;
+border-style: outset;
+border-collapse: collapse;
+}
+table th {
+border-width: 2px;
+padding: 5px;
+border-style: inset;
+}
+table td {
+border-width: 1px;
+border-style: inset;
+line-height: 18px;
+padding: 5px 5px;
+}
+table, table th, table td {
+border-left-style: none;
+border-right-style: none;
+}
+table thead, table tr.even {
+background-color: #f7f7f7;
+}
+p {
+margin: 0.5em 0;
+}
+blockquote {
+background-color: #f6f6f6;
+padding: 0.25em 0.75em;
+}
+hr {
+border-style: solid;
+border: none;
+border-top: 1px solid #777;
+margin: 28px 0;
+}
+dl {
+margin-left: 0;
+}
+dl dd {
+margin-bottom: 13px;
+margin-left: 13px;
+}
+dl dt {
+font-weight: bold;
+}
+ul {
+margin-top: 0;
+}
+ul li {
+list-style: circle outside;
+}
+ul ul {
+margin-bottom: 0;
+}
+pre, code {
+background-color: #f7f7f7;
+border-radius: 3px;
+color: #333;
+white-space: pre-wrap; 
+}
+pre {
+border-radius: 3px;
+margin: 5px 0px 10px 0px;
+padding: 10px;
+}
+pre:not([class]) {
+background-color: #f7f7f7;
+}
+code {
+font-family: Consolas, Monaco, 'Courier New', monospace;
+font-size: 85%;
+}
+p > code, li > code {
+padding: 2px 0px;
+}
+div.figure {
+text-align: center;
+}
+img {
+background-color: #FFFFFF;
+padding: 2px;
+border: 1px solid #DDDDDD;
+border-radius: 3px;
+border: 1px solid #CCCCCC;
+margin: 0 5px;
+}
+h1 {
+margin-top: 0;
+font-size: 35px;
+line-height: 40px;
+}
+h2 {
+border-bottom: 4px solid #f7f7f7;
+padding-top: 10px;
+padding-bottom: 2px;
+font-size: 145%;
+}
+h3 {
+border-bottom: 2px solid #f7f7f7;
+padding-top: 10px;
+font-size: 120%;
+}
+h4 {
+border-bottom: 1px solid #f7f7f7;
+margin-left: 8px;
+font-size: 105%;
+}
+h5, h6 {
+border-bottom: 1px solid #ccc;
+font-size: 105%;
+}
+a {
+color: #0033dd;
+text-decoration: none;
+}
+a:hover {
+color: #6666ff; }
+a:visited {
+color: #800080; }
+a:visited:hover {
+color: #BB00BB; }
+a[href^="http:"] {
+text-decoration: underline; }
+a[href^="https:"] {
+text-decoration: underline; }
+
+code > span.kw { color: #555; font-weight: bold; } 
+code > span.dt { color: #902000; } 
+code > span.dv { color: #40a070; } 
+code > span.bn { color: #d14; } 
+code > span.fl { color: #d14; } 
+code > span.ch { color: #d14; } 
+code > span.st { color: #d14; } 
+code > span.co { color: #888888; font-style: italic; } 
+code > span.ot { color: #007020; } 
+code > span.al { color: #ff0000; font-weight: bold; } 
+code > span.fu { color: #900; font-weight: bold; } 
+code > span.er { color: #a61717; background-color: #e3d2d2; } 
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">Extend TapeR by implementing sorting and
+related aspects of forestry in R</h1>
+<h4 class="author">Christian Vonderach</h4>
+<h4 class="date">16 November, 2024</h4>
+
+
+
+<div id="how-to-get-the-r-package" class="section level2">
+<h2>How to get the R-Package</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a>remotes<span class="sc">::</span><span class="fu">install_gitlab</span>(„vochr<span class="sc">/</span>tapes“, <span class="at">build_vignettes =</span> <span class="cn">TRUE</span>) </span></code></pre></div>
+</div>
+<div id="basic" class="section level2">
+<h2>Basic</h2>
+<p>This R-Package extends, adapts and realizes the methodological taper
+curve development package <em>TapeR</em> for the context of the German
+National Forest Inventory (NFI). For that purpose new taper curve models
+were developed on extensive data from several German research
+stations.</p>
+</div>
+<div id="functionality" class="section level2">
+<h2>Functionality</h2>
+<p>The package aims at providing functions to evaluate TapeR-base taper
+curves with respect to diameter at given height, height of given
+diameter, estimating double bark thickness, providing volumes of total
+taper curve and parts of it, estimating total aboveground biomass and
+components of it. The following section provide examples on the data
+structure and how the functions can be used.</p>
+<div id="s4-classes" class="section level3">
+<h3>S4-classes</h3>
+<p>The package establishes two S4-classes, which define requirements on
+the data applied to the functions. The <em>tprTrees</em>-class obviously
+defines trees, but with a focus on sectional measurements. With that,
+one can provide as many diameters (and their measurement heights) to
+precisely follow its taper curve. But similarly, one can only provide
+one diameter and its measurement height for subsequent use of the
+package functions.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">help</span>(<span class="st">&quot;tprTrees-class&quot;</span>)</span></code></pre></div>
+<p>For estimating roundwood assortments, there is an additional S4-class
+<em>parSort</em> which defines the sorting parameters.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">help</span>(<span class="st">&quot;parSort-class&quot;</span>)</span></code></pre></div>
+</div>
+<div id="handled-tree-species" class="section level3">
+<h3>handled tree species</h3>
+<p>The tree species list is taken from the predecessor taper curve model
+BDAT. Indeed, there are only <em>eight</em> taper curve models, but the
+other tree species are mapped to these eight. For future releases this
+might chance if further data leads to the development of additional
+taper curve models.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">require</span>(TapeS)</span></code></pre></div>
+<pre><code>## Lade nötiges Paket: TapeS</code></pre>
+<pre><code>## This is TapeS 0.13.0
+## Option &#39;TapeS_Rfn&#39; set to &#39;sig2&#39;. See &#39;?setTapeSoptions&#39; for details.</code></pre>
+<div class="sourceCode" id="cb7"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" tabindex="-1"></a><span class="fu">tprSpeciesCode</span>(<span class="at">inSp =</span> <span class="cn">NULL</span>, <span class="at">outSp =</span> <span class="cn">NULL</span>)</span></code></pre></div>
+<pre><code>##    ID kurz            lang short                long            scientific
+## 1   1   Fi          Fichte    NS       Norway spruce           Picea abies
+## 2   2   SF    Sitka-Fichte    SS        Sitka spruce      Picea sitchensis
+## 3   3   Ta           Tanne   ESF European silver fir            Abies alba
+## 4   4   KT    Kuestentanne    GF           Grand fir         Abies grandis
+## 5   5  Kie          Kiefer    SP         Scotch pine      Pinus sylvestris
+## 6   6   SK   Schwarzkiefer   AUP       Austrian pine           Pinus nigra
+## 7   7   WK Weymouthskiefer   WEP       Weymouth pine         Pinus strobus
+## 8   8   DG       Douglasie    DF         Douglas fir Pseudotsuga menziesii
+## 9   9   La         Laerche   XLA               larch            Larix spp.
+## 10 10   EL  Europ. Laerche   ELA      European larch         Larix decidua
+## 11 11   JL    Jap. Laerche   JLA      Japanese larch       Larix kaempferi
+## 12 12   Th           Thuja    RC   Western red cedar         Thuja plicata
+## 13 13   Ts           Tsuga    WH     Western hemlock    Tsuga heterophylla
+## 14 14   SN             sNB    XC      other conifers     Coniferales trees
+## 15 15   Bu           Buche    BE               beech       Fagus sylvatica
+## 16 16   HB       Hainbuche   HBM            hornbeam      Carpinus betulus
+## 17 17   Ei           Eiche    OK oak (robur/petraea)          Quercus spp.
+## 18 18   RE        Roteiche   ROK             Red oak         Quercus rubra
+## 19 19   Pa          Pappel   XPO              poplar          Populus spp.
+## 20 20   BP    Balsampappel   BPO       Balsam poplar   Populus balsamifera
+## 21 21   Es           Esche    AH                 ash    Fraxinus excelsior
+## 22 22   Ah           Ahorn   XAH               maple             Acer spp.
+## 23 23   BA       Bergahorn    SY            sycamore   Acer pseudoplatanus
+## 24 24   SA      Spitzahorn   NOM        Norway maple      Acer platanoides
+## 25 25   FA       Feldahorn    FM         Field maple        Acer campestre
+## 26 26   Bi           Birke   XBI               birch           Betula spp.
+## 27 27   Li           Linde    LI           lime tree            Tilia spp.
+## 28 28   Er            Erle    AR               alder            Alnus spp.
+## 29 29  Kir         Kirsche   WCH         Wild cherry          Prunus avium
+## 30 30   Ul            Ulme    EM                 elm            Ulmus spp.
+## 31 31   Ro         Robinie    BL        black locust  Robinia pseudoacacia
+## 32 32   El        Elsbeere   WST   Wild service tree     Sorbus torminalis
+## 33 33   Ka        Kastanie    SC      Sweet chestnut       Castanea sativa
+## 34 34   We           Weide   XWL              willow            Salix spp.
+## 35 35   LB             sLB    XB   other broadleaves   Magnoliopsida trees
+## 36 36   VB      Vogelbeere   ROW               rowan      Sorbus aucuparia
+## 37 37  BU_          Buche_   BE_              beech_      Fagus sylvatica_
+## 38 38  Ei_          Eiche_   OK_                oak_         Quercus spp._
+## 39 39 REi_       Roteiche_  ROK_            Red oak_        Quercus rubra_</code></pre>
+</div>
+<div id="species-mapping" class="section level3">
+<h3>species mapping</h3>
+<p>Beside the taper curve models, mapping between species is required
+also for double bark thickness, biomass functions (total aboveground and
+component biomass), minimum cutting diameter, the amount of crown wood
+in deciduous tree species and the volume for small trees according to
+FAO.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">BaMap</span>(<span class="at">Ba =</span> <span class="cn">NULL</span>, <span class="at">type =</span> <span class="cn">NULL</span>)</span></code></pre></div>
+<pre><code>##    Schaftform Rinde Az uvDh mAS Biomasse BmComp VolFao Formigkeit
+## 1           1     1  1    0   0        1      1      1          1
+## 2           1     1  1    0   0        1      1      1          1
+## 3           2     2  3    0   0        2      2      2          2
+## 4           2     2  3    0   0        2      2      2          2
+## 5           4     4  4    0   0        4      3      4          4
+## 6           4     8  4    0   0        4      3      4          4
+## 7           4     9  4    0   0        4      3      4          4
+## 8           3     3  1    0   0        3      4      3          3
+## 9           5     6  5    0   0        5      4      5          5
+## 10          5     6  5    0   0        5      4      5          5
+## 11          5     7  5    0   0        5      4      5          5
+## 12          1     1  1    0   0        1      1      1          1
+## 13          1     1  1    0   0        1      1      1          1
+## 14          1     2  1    0   0        1      1      1          1
+## 15          6    10  6    1   1        6      5      6          6
+## 16          6    18  6    1   1        9      6      7          6
+## 17          7    11  7    2   2        7      6      7          7
+## 18          8    14  7    2   2        7      6      7          8
+## 19          8    25  6    2   2       17      5      6          8
+## 20          8    25  6    2   2       17      5      6          8
+## 21          6    17  6    2   2        8      8      7          6
+## 22          6    15  6    1   1       10      7      7          6
+## 23          6    15  6    1   1       10      7      7          6
+## 24          6    15  6    1   1       11      7      7          6
+## 25          6    21  6    1   1       10      7      7          6
+## 26          6    21  6    1   1       15      5      6          9
+## 27          6    16  6    1   1       12      5      6          6
+## 28          6    28  6    1   1       16      5      6          6
+## 29          6    26  6    1   1        6      5      6          6
+## 30          6    20  6    1   1       14      5      6          6
+## 31          6    19  7    2   2       13      5      6          6
+## 32          6    23  6    1   1        6      5      6          6
+## 33          7    11  6    1   1        6      5      6          7
+## 34          6    12  6    1   1       18      5      6          6
+## 35          6    12  6    1   1        6      5      6          6
+## 36          6    26  7    2   1        6      5      6          6
+## 37          9    10  6    1   1        6      5      6          6
+## 38         10    11  7    2   2        7      6      7          7
+## 39         11    14  7    2   2        7      6      7          8</code></pre>
+</div>
+<div id="defining-a-tprtrees-object" class="section level3">
+<h3>Defining a <em>tprTrees</em> object</h3>
+<div class="sourceCode" id="cb11"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">require</span>(TapeS)</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a>obj <span class="ot">&lt;-</span> <span class="fu">tprTrees</span>(<span class="at">spp=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">3</span>),</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a>                <span class="at">Hm=</span><span class="fu">list</span>(<span class="fu">c</span>(<span class="fl">1.3</span>, <span class="dv">5</span>, <span class="dv">7</span>), <span class="fu">c</span>(<span class="fl">1.3</span>)),</span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a>                <span class="at">Dm=</span><span class="fu">list</span>(<span class="fu">c</span>(<span class="dv">27</span>, <span class="fl">23.5</span>, <span class="fl">22.4</span>), <span class="fu">c</span>(<span class="dv">27</span>)),</span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a>                <span class="at">Ht=</span><span class="fu">c</span>(<span class="dv">27</span>, <span class="dv">30</span>))</span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a>Hx <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fl">1.3</span>, <span class="dv">5</span>, <span class="dv">7</span>)</span></code></pre></div>
+</div>
+<div id="diameter-estimation" class="section level3">
+<h3>Diameter estimation</h3>
+<p>Diameter estimation from the developed taper curves via the empirical
+best linear unbiased predictor (EBLUP, see Kublin et al. (2013)) not
+necessarily<br />
+passed through the observations. This behaviour can be forced if the
+residual variance is set to zero. The package offers to set an option
+‘TapeS_R0’ which, by default, is set to FALSE and uses full information
+from the models.</p>
+<p>If one wants to force the taper curves through given (measured)
+diameters, one can do so by setting TapeS::setTapeSoptions(). See
+further down.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">tprDiameter</span>(obj, <span class="at">Hx =</span> Hx) <span class="co"># R0=TRUE, taper curve through measurements</span></span></code></pre></div>
+<pre><code>##          [,1]     [,2]     [,3]
+## [1,] 26.98207 23.53026 22.38791
+## [2,] 27.00847 24.30814 23.31787</code></pre>
+<div class="sourceCode" id="cb14"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">tprDiameter</span>(obj, <span class="at">Hx =</span> Hx, <span class="at">bark =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>##          [,1]     [,2]     [,3]
+## [1,] 25.51535 22.21057 21.11821
+## [2,] 25.32629 22.77738 21.84264</code></pre>
+<div class="sourceCode" id="cb16"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" tabindex="-1"></a><span class="fu">tprDiameter</span>(obj, <span class="at">Hx =</span> Hx, <span class="at">interval =</span> <span class="st">&quot;prediction&quot;</span>)</span></code></pre></div>
+<pre><code>##      tree  Hx      lwr      EDx      upr
+## [1,]    1 1.3 25.69324 26.98207 28.27089
+## [2,]    1 5.0 22.38707 23.53026 24.67345
+## [3,]    1 7.0 21.21585 22.38791 23.55997
+## [4,]    2 1.3 25.07738 27.00847 28.93955
+## [5,]    2 5.0 21.90235 24.30814 26.71393
+## [6,]    2 7.0 20.82588 23.31787 25.80986</code></pre>
+<p>The diameter are evaluated at position Hx for each tree. If only one
+diameter is required, e.g. for relative height, the parameter cp=FALSE
+(no cartesian product) can be used</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" tabindex="-1"></a><span class="fu">tprDiameter</span>(obj, <span class="at">Hx =</span> <span class="fl">0.3</span><span class="sc">*</span><span class="fu">Ht</span>(obj), <span class="at">interval =</span> <span class="st">&quot;prediction&quot;</span>, <span class="at">cp=</span><span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>##      tree  Hx      lwr      EDx      upr
+## [1,]    1 8.1 20.51562 21.76156 23.00750
+## [2,]    2 9.0 19.75799 22.38323 25.00847</code></pre>
+</div>
+<div id="height-estimation" class="section level3">
+<h3>Height estimation</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" tabindex="-1"></a><span class="fu">tprHeight</span>(obj, <span class="at">Dx =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">9</span>, <span class="dv">8</span>, <span class="dv">7</span>))</span></code></pre></div>
+<pre><code>##          [,1]     [,2]     [,3]     [,4]
+## [1,] 21.68562 22.37393 23.01733 23.62004
+## [2,] 25.14243 25.79791 26.40098 26.95868</code></pre>
+<div class="sourceCode" id="cb22"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" tabindex="-1"></a><span class="fu">tprHeight</span>(obj, <span class="at">Dx =</span> <span class="fu">c</span>(<span class="dv">10</span>, <span class="dv">9</span>, <span class="dv">8</span>, <span class="dv">7</span>), <span class="at">bark =</span> <span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>##          [,1]     [,2]     [,3]     [,4]
+## [1,] 21.16237 21.93210 22.64808 23.31524
+## [2,] 24.56976 25.32251 26.00833 26.63661</code></pre>
+</div>
+<div id="estimation-of-double-bark-thickness" class="section level3">
+<h3>Estimation of double bark thickness</h3>
+<div class="sourceCode" id="cb24"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" tabindex="-1"></a><span class="fu">tprBark</span>(obj, <span class="at">Hx =</span> <span class="fu">c</span>(<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>))</span></code></pre></div>
+<pre><code>##          [,1]     [,2]     [,3]
+## [1,] 1.512889 1.404739 1.371391
+## [2,] 1.712393 1.632778 1.592503</code></pre>
+</div>
+<div id="volume-estimation" class="section level3">
+<h3>Volume estimation</h3>
+<div class="sourceCode" id="cb26"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" tabindex="-1"></a><span class="fu">tprVolume</span>(obj) <span class="co"># default is Vfm</span></span></code></pre></div>
+<pre><code>## [1] 0.7155448 0.8559027</code></pre>
+<div class="sourceCode" id="cb28"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" tabindex="-1"></a><span class="fu">tprVolume</span>(obj, <span class="at">AB =</span> <span class="fu">list</span>(<span class="at">A=</span><span class="dv">0</span>, <span class="at">B=</span><span class="dv">7</span>), <span class="at">iAB=</span><span class="fu">c</span>(<span class="st">&quot;h&quot;</span>, <span class="st">&quot;dob&quot;</span>), <span class="at">bark=</span><span class="cn">TRUE</span>) <span class="co"># same</span></span></code></pre></div>
+<pre><code>## [1] 0.7155448 0.8559027</code></pre>
+<div class="sourceCode" id="cb30"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" tabindex="-1"></a><span class="fu">Vfm</span>(obj) <span class="co"># wrapper</span></span></code></pre></div>
+<pre><code>## [1] 0.7155448 0.8559027</code></pre>
+<div class="sourceCode" id="cb32"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" tabindex="-1"></a><span class="fu">VolR</span>(obj) <span class="co"># wrapper</span></span></code></pre></div>
+<pre><code>## [1] 0.7155448 0.8559027</code></pre>
+<div class="sourceCode" id="cb34"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" tabindex="-1"></a><span class="fu">Efm</span>(obj, <span class="at">stH =</span> <span class="fl">0.01</span>) <span class="co"># default</span></span></code></pre></div>
+<pre><code>## [1] 0.6148924 0.7297650</code></pre>
+<div class="sourceCode" id="cb36"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" tabindex="-1"></a><span class="fu">VolE</span>(obj)</span></code></pre></div>
+<pre><code>##   tree       vol
+## 1    1 0.5569941
+## 2    2 0.6604166</code></pre>
+<div class="sourceCode" id="cb38"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" tabindex="-1"></a><span class="fu">VolFAO</span>(obj)</span></code></pre></div>
+<pre><code>## [1] 0.6977114 0.8395405</code></pre>
+<div class="sourceCode" id="cb40"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" tabindex="-1"></a><span class="fu">Vfm_phys</span>(obj) <span class="co"># takes a while</span></span></code></pre></div>
+<pre><code>## [1] 0.7238518 0.8588418</code></pre>
+<div class="sourceCode" id="cb42"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" tabindex="-1"></a><span class="fu">Efm_phys</span>(obj)</span></code></pre></div>
+<pre><code>## [1] 0.6205634 0.7317585</code></pre>
+<div class="sourceCode" id="cb44"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" tabindex="-1"></a><span class="fu">tprVolume</span>(obj, <span class="at">AB =</span> <span class="fu">list</span>(<span class="at">A=</span><span class="fl">0.01</span><span class="sc">*</span><span class="fu">Ht</span>(obj), <span class="at">B=</span><span class="dv">7</span>, <span class="at">sl=</span><span class="fl">0.01</span>), <span class="at">iAB =</span> <span class="fu">c</span>(<span class="st">&quot;H&quot;</span>, <span class="st">&quot;Dob&quot;</span>), <span class="at">bark=</span><span class="cn">FALSE</span>)</span></code></pre></div>
+<pre><code>## [1] 0.6205634 0.7317585</code></pre>
+</div>
+<div id="estimation-of-roundwood-assortments" class="section level3">
+<h3>Estimation of roundwood assortments</h3>
+<div class="sourceCode" id="cb46"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" tabindex="-1"></a><span class="fu">tprAssortment</span>(obj) <span class="do">## default assortment parameters</span></span></code></pre></div>
+<pre><code>##    tree sort height    length       mdm       zdm         vol
+## 3     1  sth   0.27 19.000000 18.847735 11.721560 0.530104882
+## 5     1 ih01  19.46  1.000000 10.961870 10.384459 0.009437547
+## 6     1  nvd  20.46  3.160039  8.385469  6.051613 0.017451670
+## 31    2  sth   0.30 19.000000 19.850787 14.712666 0.588029258
+## 51    2 ih01  19.49  4.000000 12.854161 10.818101 0.051908368
+## 61    2  nvd  23.49  3.468678  8.670170  5.987748 0.020479017</code></pre>
+<div class="sourceCode" id="cb48"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" tabindex="-1"></a>pars <span class="ot">&lt;-</span> <span class="fu">parSort</span>(<span class="at">stH=</span><span class="fl">0.2</span>, <span class="at">Lxh=</span><span class="fu">c</span>(<span class="dv">1</span>, <span class="fl">1.5</span>), <span class="at">fixN=</span><span class="dv">2</span>, <span class="at">fixL=</span><span class="dv">4</span>)</span>
+<span id="cb48-2"><a href="#cb48-2" tabindex="-1"></a><span class="fu">tprAssortment</span>(obj, <span class="at">pars =</span> pars)</span></code></pre></div>
+<pre><code>##    tree  sort height    length       mdm       zdm        vol
+## 1     1    hx  0.200  1.000000 27.305190 25.115321 0.05855720
+## 2     1 fix01  1.200  4.000000 22.508322 21.382661 0.15916080
+## 3     1 fix02  5.240  4.000000 20.260404 19.146289 0.12895734
+## 4     1   sth  9.280 10.900000 15.870577 10.710667 0.21562635
+## 7     1   nvd 20.289  3.331039  8.501393  6.051613 0.01890818
+## 11    2    hx  0.200  1.500000 25.222573 24.090990 0.07494798
+## 21    2 fix01  1.700  4.000000 22.719310 21.733041 0.16215866
+## 31    2 fix02  5.740  4.000000 20.796086 19.876919 0.13586671
+## 41    2   sth  9.780 13.700000 16.647170 10.829273 0.29818878
+## 71    2   nvd 23.617  3.341678  8.582446  5.987748 0.01933199</code></pre>
+</div>
+<div id="biomass-estimation" class="section level3">
+<h3>Biomass estimation</h3>
+<div id="total-aboveground-biomass" class="section level4">
+<h4>total aboveground biomass</h4>
+<div class="sourceCode" id="cb50"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" tabindex="-1"></a><span class="fu">tprBiomass</span>(obj) <span class="co"># bwi-biomass</span></span></code></pre></div>
+<pre><code>## [1] 313.5984 394.2241</code></pre>
+</div>
+<div id="component-biomass" class="section level4">
+<h4>component biomass</h4>
+<p>For this package the biomass functions of Vonderach et al. (2018)
+have been extended to include predictors D03 and crown length for the
+prediction of several components. Although these models can estimate
+absolute biomass, in this context they are used to predict the share of
+each component, which is multiplied by total aboveground biomass.</p>
+<div class="sourceCode" id="cb52"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" tabindex="-1"></a><span class="fu">tprBiomass</span>(obj, <span class="at">component =</span> <span class="fu">c</span>(<span class="st">&quot;sw&quot;</span>, <span class="st">&quot;sb&quot;</span>, <span class="st">&quot;ndl&quot;</span>)) </span></code></pre></div>
+<pre><code>##         sw       sb      ndl
+## 1 236.2177 21.88162 16.53454
+## 2 250.8663 39.55823 55.37832</code></pre>
+<div class="sourceCode" id="cb54"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" tabindex="-1"></a><span class="fu">tprBiomass</span>(obj, <span class="at">component =</span> <span class="fu">c</span>(<span class="st">&quot;all&quot;</span>))</span></code></pre></div>
+<pre><code>##        stw       stb       sw       sb      fwb      ndl      agb
+## 1 9.856526 0.9110677 236.2177 21.88162 28.19688 16.53454 313.5984
+## 2 6.161245 1.1307266 250.8663 39.55823 41.12920 55.37832 394.2241</code></pre>
+</div>
+</div>
+</div>
+<div id="option-taper-curve-evaluation" class="section level2">
+<h2>Option: Taper curve evaluation</h2>
+<p>In TapeR-package, the taper curve of a tree with given diameter- and
+height measurements is as a default realised using the estimated best
+linear unbiased predictor (see Kublin et al. 2013, p.987). This means,
+that all diameters and volume predictions are estimated using the
+intrinsic error structure of the fitted taper curve model. Hence the
+taper curve not necessarily passes through the measured diameter.</p>
+<p>For the possibility of forcing the taper curves through the measured
+diameters, the TapeR-package has been extended to allow for explicitly
+determining the assumed residual variance. See
+<em>?TapeR::resVar</em>.</p>
+<p>To apply a modification of the residual variance in TapeS, one can
+set a special package option (all called functions react to this option)
+or define the options as a parameter in each function. The package
+option is set by <em>TapeS_Rfn = list(fn=“zero”)</em>, here with a
+zero-function to force interpolation.</p>
+<div class="sourceCode" id="cb56"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" tabindex="-1"></a><span class="fu">setTapeSoptions</span>(<span class="at">Rfn =</span> <span class="fu">list</span>(<span class="at">fn=</span><span class="st">&quot;zero&quot;</span>))</span>
+<span id="cb56-2"><a href="#cb56-2" tabindex="-1"></a><span class="fu">tprDiameter</span>(obj, <span class="at">Hx=</span><span class="fl">1.3</span>)</span></code></pre></div>
+<pre><code>## [1] 27 27</code></pre>
+<div class="sourceCode" id="cb58"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb58-1"><a href="#cb58-1" tabindex="-1"></a><span class="fu">setTapeSoptions</span>(<span class="at">Rfn =</span> <span class="fu">list</span>(<span class="at">fn=</span><span class="st">&quot;sig2&quot;</span>))</span>
+<span id="cb58-2"><a href="#cb58-2" tabindex="-1"></a><span class="fu">tprDiameter</span>(obj, <span class="at">Hx=</span><span class="fl">1.3</span>)</span></code></pre></div>
+<pre><code>## [1] 26.98207 27.00847</code></pre>
+<p>By default, this option is set to “sig2” on load of the package,
+hence, the residual variance of the model is used (default behaviour of
+TapeR). Other functions are also available, e.g. “linear”, “laglinear”,
+“biliniar”, “dnorm” and “dlnorm”. Most function allow for defining a
+point of zero variance. The latter two are based on the normal and
+log-normal distribution and allow for a standard deviation term.</p>
+<p>Please note: setting a zero variance should not be overstrained. It
+is mainly implemented to preserve diameter in breast height (dbh)
+measurements for trees of e.g. inventory data. If one is about to apply
+the TapeS-functions to sectional data, where a lot of diameter
+measurements are available, the <em>TapeS_Rfn</em>-Option should left as
+is or set to <em>sig2</em> via TapeS::setTapeSoptions(Rfn =
+list(fn=“sig2”)).</p>
+</div>
+<div id="option-improve-monotonicity-of-taper-curves" class="section level2">
+<h2>Option: improve monotonicity of taper curves</h2>
+<p>Depending on the size and measurements of (especially small) trees,
+it sometimes might happen, that the calibrated taper curves have an
+increasing diameter sequence at the stem foot:</p>
+<div class="sourceCode" id="cb60"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">tprTrees</span>(<span class="at">spp=</span><span class="dv">3</span>, <span class="at">Dm=</span><span class="fl">7.9</span>, <span class="at">Hm=</span><span class="fl">1.3</span>, <span class="at">Ht=</span><span class="dv">12</span>, ), <span class="at">mono=</span><span class="cn">FALSE</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>To avoid such implausible taper curves, internally an additional
+support “measurement” at 1% of tree height is added to the set of
+measurements. This extra measurement is based on the ratio between 5%
+and 1% of tree height of the population average curve. With that, taper
+curves usually are monotonically decreasing:</p>
+<div class="sourceCode" id="cb61"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" tabindex="-1"></a><span class="fu">plot</span>(<span class="fu">tprTrees</span>(<span class="at">spp=</span><span class="dv">3</span>, <span class="at">Dm=</span><span class="fl">7.9</span>, <span class="at">Hm=</span><span class="fl">1.3</span>, <span class="at">Ht=</span><span class="dv">12</span>, ), <span class="at">mono=</span><span class="cn">TRUE</span>)</span></code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>By default, <em>mono</em> is set to TRUE (must not be given) via
+options(“TapeS_mono”), hence, all non-monotonic curves (check at
+initialisation), are amended by an additional support diameter.</p>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Kublin, E., J. Breidenbach and G. Kaendler (2013). “A flexible stem
+taper and volume prediction method based on mixed-effects B-spline
+regression.” European Journal of forest research 132(5-6): 983-997.</p>
+<p>Vonderach, C., G. Kändler and C. F. Dormann (2018). “Consistent set
+of additive biomass functions for eight tree species in Germany fit by
+nonlinear seemingly unrelated regression.” Annals of Forest Science
+75(2): 49.</p>
+</div>
+<div id="contact" class="section level2">
+<h2>Contact</h2>
+<p><a href="mailto:christian.vonderach@forst.bwl.de" class="email">christian.vonderach@forst.bwl.de</a></p>
+<p>Forest Research Institute Baden-Württemberg by order of Thünen
+Institute of Forest Ecosystems / Forest resources and climate
+protection</p>
+</div>
+
+
+
+<!-- code folding -->
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
