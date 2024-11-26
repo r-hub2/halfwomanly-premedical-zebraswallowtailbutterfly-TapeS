@@ -28,7 +28,7 @@ Suggests: testthat, knitr, rmarkdown, rbenchmark, rBDAT (>= 0.10.0),
         RODBC
 VignetteBuilder: knitr
 NeedsCompilation: yes
-Packaged: 2024-11-26 09:17:00 UTC; christian.vonderach
+Packaged: 2024-11-26 09:48:15 UTC; christian.vonderach
 Author: Christian Vonderach [aut, cre],
   Edgar Kublin [aut],
   Gerald Kändler [aut]
