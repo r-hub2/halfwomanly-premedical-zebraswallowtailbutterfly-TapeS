@@ -7,9 +7,9 @@
 #' over or under bark should be calculated. Additionally, add in \code{sl} for
 #' the segment length over which the integral should be calculated. See details.
 #' @param iAB character indicating how to interpret given A and B values. Either
-#' "H" (the default), "Dob" (diameter over bark) or "Dub" (diameter under bark).
+#' "H" (height), "Dob" (diameter over bark) or "Dub" (diameter under bark).
 #' Could be of length one or two, depending on whether A and B are both height
-#' or diameter variables or not. See examples.
+#' or diameter variables or not. Default is \code{c("h", "dob")}. See examples.
 #' @param bark should volume be returned including (\code{TRUE}) or excluding
 #' bark (\code{FALSE})?
 #' @param interval character to indicate whether and which type of interval is
@@ -294,28 +294,27 @@ setMethod("tprVolume", signature = "tprTrees",
 
 
 slfun <- function(A, B, sl){
-  # a <- A - A # set to 0
-  # b <- B - A
-  # a <- 0
-  # b <- 5.5
-  # sl <- 1
-  (nsek <- floor((B-A) / sl))
-  if(nsek >= 1){ # reguläre Sektionen
-    (regsek <- A + (0:(nsek-1)) * sl) # reguläre Sektionen
-    (messregsek <- regsek + sl/2) # Messstellen reguläre Sektionen
+  if(A == B){
+    return(list(Hx=A, L=0))
   } else {
-    messregsek <- numeric(0)
+    (nsek <- floor((B-A) / sl))
+    if(nsek >= 1){ # reguläre Sektionen
+      (regsek <- A + (0:(nsek-1)) * sl) # reguläre Sektionen
+      (messregsek <- regsek + sl/2) # Messstellen reguläre Sektionen
+    } else {
+      messregsek <- numeric(0)
+    }
+    if((A + nsek*sl) != B){
+      (maxregsek <- A + nsek * sl)
+      (lastsek <- B - maxregsek)
+      (messlastsek <- B - lastsek/2)
+    } else {
+      (lastsek <- numeric(0))
+      (messlastsek <- numeric(0))
+    }
+    (messall <- c(messregsek, messlastsek))
+    (seklen <- c(rep(sl, length(messregsek)), lastsek))
+    return(list(Hx=messall, L=seklen))
   }
-  if((A + nsek*sl) != B){
-    (maxregsek <- A + nsek * sl)
-    (lastsek <- B - maxregsek)
-    (messlastsek <- B - lastsek/2)
-  } else {
-    (lastsek <- numeric(0))
-    (messlastsek <- numeric(0))
-  }
-  (messall <- c(messregsek, messlastsek))
-  (seklen <- c(rep(sl, length(messregsek)), lastsek))
-  return(list(Hx=messall, L=seklen))
 }
 

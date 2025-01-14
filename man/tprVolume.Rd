@@ -33,9 +33,9 @@ over or under bark should be calculated. Additionally, add in \code{sl} for
 the segment length over which the integral should be calculated. See details.}
 
 \item{iAB}{character indicating how to interpret given A and B values. Either
-"H" (the default), "Dob" (diameter over bark) or "Dub" (diameter under bark).
+"H" (height), "Dob" (diameter over bark) or "Dub" (diameter under bark).
 Could be of length one or two, depending on whether A and B are both height
-or diameter variables or not. See examples.}
+or diameter variables or not. Default is \code{c("h", "dob")}. See examples.}
 
 \item{bark}{should volume be returned including (\code{TRUE}) or excluding
 bark (\code{FALSE})?}

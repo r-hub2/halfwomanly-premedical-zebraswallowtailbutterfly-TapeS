@@ -1,7 +1,7 @@
 Package: TapeS
 Type: Package
 Title: Tree Taper Curves and Sorting Based on 'TapeR'
-Version: 0.13.0
+Version: 0.13.0-9001
 Authors@R: c(person("Christian", "Vonderach", 
   email="christian.vonderach@forst.bwl.de", role=c("aut", "cre")),
   person("Edgar", "Kublin", role="aut"),
@@ -28,7 +28,7 @@ Suggests: testthat, knitr, rmarkdown, rbenchmark, rBDAT (>= 0.10.0),
         RODBC
 VignetteBuilder: knitr
 NeedsCompilation: yes
-Packaged: 2024-11-26 10:22:55 UTC; christian.vonderach
+Packaged: 2025-01-14 12:52:03 UTC; christian.vonderach
 Author: Christian Vonderach [aut, cre],
   Edgar Kublin [aut],
   Gerald Kändler [aut]
