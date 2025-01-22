@@ -86,12 +86,26 @@ tprBiomass(obj, component="all",  useNFI = FALSE)
 useNFI <- FALSE
 interval <- "confidence"
 component <- c("sw", "agb")
-mono <- TRUE
-Rfn <- NULL
 tprBiomass(obj, component, useNFI, interval)
 tprBiomass(obj, component, useNFI, interval="none")
 tprBiomass(obj, component, useNFI=TRUE, interval)
 tprBiomass(obj, component, useNFI=TRUE, interval="none")
+
+obj <- tprTrees(spp=15, Dm=30, Hm=1.3, Ht=27)
+tprBiomass(obj, component="all", interval="confidence")
+tprBiomass(obj, component="ndl", interval="confidence")
+
+obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+tprBiomass(obj, component="all", interval="confidence")
+
+obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+tprBiomass(obj, component=c("sw", "ndl"), interval="confidence")
+
+obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+tprBiomass(obj, component=c("ndl", "agb"), interval="confidence")
+
+obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+tprBiomass(obj, component=c("ndl"), interval="confidence")
 }
 \references{
 Kändler, G. and B. Bösch (2012). Methodenentwicklung für die

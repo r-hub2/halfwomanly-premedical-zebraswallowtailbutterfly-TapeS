@@ -1,7 +1,7 @@
 Package: TapeS
 Type: Package
 Title: Tree Taper Curves and Sorting Based on 'TapeR'
-Version: 0.13.0-9001
+Version: 0.13.1-9000
 Authors@R: c(person("Christian", "Vonderach", 
   email="christian.vonderach@forst.bwl.de", role=c("aut", "cre")),
   person("Edgar", "Kublin", role="aut"),
@@ -15,8 +15,8 @@ Description: Providing new german-wide 'TapeR' Models and functions for their
   height and tree height. The functions then provide information on diameters 
   along the stem, bark thickness, height of diameters, volume of the total or 
   parts of the trunk and total and component above-ground biomass. It is also 
-  possible to calculate assortments from the taper curves. For diameter and 
-  volume estimation, uncertainty information is given.
+  possible to calculate assortments from the taper curves. Uncertainty 
+  information is provided for diameter, volume and component biomass estimation. 
 Depends: R (>= 3.5.0)
 License: BSD_2_clause + file LICENSE
 URL: https://gitlab.com/vochr/tapes
@@ -28,7 +28,7 @@ Suggests: testthat, knitr, rmarkdown, rbenchmark, rBDAT (>= 0.10.0),
         RODBC
 VignetteBuilder: knitr
 NeedsCompilation: yes
-Packaged: 2025-01-14 12:52:03 UTC; christian.vonderach
+Packaged: 2025-01-22 09:42:11 UTC; christian.vonderach
 Author: Christian Vonderach [aut, cre],
   Edgar Kublin [aut],
   Gerald Kändler [aut]

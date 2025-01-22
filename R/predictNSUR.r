@@ -276,13 +276,14 @@ NSURvar <- function(data, estBM = NULL, comp = NULL, interval = "confidence",
 
     } #for loop equation
 
-    if("ndl" %in% comp & any(1:4 %in% uspp) & u > 4){
-      # there is no needle comp for deciduous tree species, but needed due to
-      # at least one conifer in the data set
-      resi <- cbind(resi, data.frame(ndl_lwr=NA,
-                                     ndl_ECBM=NA,
-                                     ndl_upr=NA,
-                                     ndl_MSE=NA))
+    if("ndl" %in% comp & u > 4){
+      # there is no needle comp for deciduous tree species, but needed if there
+      # is at least one conifer in the data set and "ndl" required
+      ndl <- data.frame(ndl_lwr=rep(0, nrow(data[data$spp==u,])),
+                        ndl_ECBM=rep(0, nrow(data[data$spp==u,])),
+                        ndl_upr=rep(0, nrow(data[data$spp==u,])),
+                        ndl_MSE=rep(0, nrow(data[data$spp==u,])))
+      resi[[ length(resi) + 1 ]] <- ndl
     }
     res[[u]] <- do.call(cbind, resi)
   } #for loop species
@@ -292,7 +293,7 @@ NSURvar <- function(data, estBM = NULL, comp = NULL, interval = "confidence",
     ll <- list()
     for(cmp in comp){
       # cmp <- comp[1]
-      ll[[cmp]] <- res[, grep(paste0("^", cmp), colnames(res))]
+      ll[[cmp]] <- as.data.frame(res[, grep(paste0("^", cmp), colnames(res)), drop=FALSE])
     }
     res <- ll
   }

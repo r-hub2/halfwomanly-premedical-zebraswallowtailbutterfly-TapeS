@@ -61,12 +61,26 @@
 #' useNFI <- FALSE
 #' interval <- "confidence"
 #' component <- c("sw", "agb")
-#' mono <- TRUE
-#' Rfn <- NULL
 #' tprBiomass(obj, component, useNFI, interval)
 #' tprBiomass(obj, component, useNFI, interval="none")
 #' tprBiomass(obj, component, useNFI=TRUE, interval)
 #' tprBiomass(obj, component, useNFI=TRUE, interval="none")
+#'
+#' obj <- tprTrees(spp=15, Dm=30, Hm=1.3, Ht=27)
+#' tprBiomass(obj, component="all", interval="confidence")
+#' tprBiomass(obj, component="ndl", interval="confidence")
+#'
+#' obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+#' tprBiomass(obj, component="all", interval="confidence")
+#'
+#' obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+#' tprBiomass(obj, component=c("sw", "ndl"), interval="confidence")
+#'
+#' obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+#' tprBiomass(obj, component=c("ndl", "agb"), interval="confidence")
+#'
+#' obj <- tprTrees(spp=c(1, 15), Dm=c(30, 30), Hm=c(1.3, 1.3), Ht=c(27, 27))
+#' tprBiomass(obj, component=c("ndl"), interval="confidence")
 
 
 setGeneric("tprBiomass",
@@ -118,7 +132,6 @@ setMethod("tprBiomass", signature = "tprTrees",
                                             kl = 0.7 * obj@Ht) )
               nsurBm$agb <- rowSums(nsurBm[, -which(colnames(nsurBm)=="id")])
 
-              # if(FALSE){ # implementing variance estimate
               if(interval %in% c("confidence", "prediction")){ # implementing variance estimate
                 # NSURvar <- TapeS:::NSURvar
                 # comp <- "all"
@@ -159,15 +172,12 @@ setMethod("tprBiomass", signature = "tprTrees",
                     vc[, upr] <- vc[, ECBM] * (1 + vc$Q)
                     vc[, MSE] <- ((vc[, upr] - vc[, ECBM]) / vc$qt)^2
                     vc$Q <- vc$qt <- NULL
+                    vc[which(vcomp[[i]]==0, arr.ind = TRUE)] <- 0
                     vcomp[[i]] <- vc
                   }
                   names(vcomp) <- NULL
                   res <- do.call(cbind, vcomp)
                   colnames(res) <- gsub("_ECBM$", "", colnames(res))
-                  # res <- list(fit = res[, grep("_ECBM", colnames(res))],
-                  #             lwr = res[, grep("_lwr", colnames(res))],
-                  #             upr = res[, grep("_upr", colnames(res))],
-                  #             MSE = res[, grep("_MSE", colnames(res))])
                   return(res)
 
                 } else {

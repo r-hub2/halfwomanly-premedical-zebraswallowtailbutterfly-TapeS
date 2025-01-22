@@ -20,7 +20,12 @@
 #' \code{list(fn="sig2")}, see \code{\link[TapeR]{resVar}}.
 #' @details The function returns total solid wood w/ bark (i.e. from H=0 to
 #' D=7cm) by default. Using \code{AB}, one can specify lower \code{A} and upper
-#' \code{B} end of segments for which volume is required, w/ or w/o bark.
+#' \code{B} end of segments for which volume is required, w/ or w/o bark. If
+#' \code{B <= A}, which can unconsciously happen if one is given as height and
+#' the other as diameter, \code{B} is silently set to \code{A} resulting in a
+#' zero estimate. This is reasonable in all cases: if both \code{A} and \code{B}
+#' are given as height or diameter and if they are given in a mixed way (height
+#' and diameter), since the upper bound should never be below the lower end.
 #'
 #' \code{iAB} can be a vector of length two, indicating how to interpret A and
 #' B. Hence, one can calculate volume between a given height and a given
@@ -140,6 +145,7 @@ setMethod("tprVolume", signature = "tprTrees",
                                 sHt = 0,
                                 par.lme = SKPar[[ SKspp[a] ]],
                                 Rfn = Rfn)
+                A <- A[is.infinite(A)] <- 0 # in case requested diameter bigger than tree at any location
               })
             } else if(iA == "dub"){
               A <- sapply(seq(length(obj@spp)), function(a){
@@ -177,6 +183,7 @@ setMethod("tprVolume", signature = "tprTrees",
                                        par.lme = SKPar[[ SKspp[a] ]],
                                        Rfn = Rfn)
               })
+              B[is.infinite(B)] <- 0 # in case requested diameter bigger than tree at any location
             } else if(iB == "dub"){
               B <- sapply(seq(length(obj@spp)), function(a){
                 if(isFALSE(obj@monotone[a]) & isTRUE(mono)){
@@ -196,6 +203,11 @@ setMethod("tprVolume", signature = "tprTrees",
             } else {
               B <- AB[["B"]]
             }
+
+            ## check height B against height A: B must be above otherwise volume
+            ## calculation makes no sense.
+            B <- ifelse(A > B, A, B)
+
             ## extract segment length (sl)
             sl <- ifelse(is.null(AB[["sl"]]), 2, AB[["sl"]]) # defaults=2m sections
 
@@ -296,6 +308,8 @@ setMethod("tprVolume", signature = "tprTrees",
 slfun <- function(A, B, sl){
   if(A == B){
     return(list(Hx=A, L=0))
+  } else if(B < A){
+    stop("in TapeS::slfun(): A > B")
   } else {
     (nsek <- floor((B-A) / sl))
     if(nsek >= 1){ # reguläre Sektionen

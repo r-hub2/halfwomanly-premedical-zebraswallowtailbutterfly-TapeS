@@ -60,7 +60,12 @@ to request confidence or prediction intervals.
 \details{
 The function returns total solid wood w/ bark (i.e. from H=0 to
 D=7cm) by default. Using \code{AB}, one can specify lower \code{A} and upper
-\code{B} end of segments for which volume is required, w/ or w/o bark.
+\code{B} end of segments for which volume is required, w/ or w/o bark. If
+\code{B <= A}, which can unconsciously happen if one is given as height and
+the other as diameter, \code{B} is silently set to \code{A} resulting in a
+zero estimate. This is reasonable in all cases: if both \code{A} and \code{B}
+are given as height or diameter and if they are given in a mixed way (height
+and diameter), since the upper bound should never be below the lower end.
 
 \code{iAB} can be a vector of length two, indicating how to interpret A and
 B. Hence, one can calculate volume between a given height and a given
