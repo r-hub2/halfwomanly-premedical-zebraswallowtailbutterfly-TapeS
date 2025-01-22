@@ -1,7 +1,10 @@
 # TapeS 0.13.1-9000
 
 * in tprVolume now checking lower end 'A' of segment against upper end 'B' of
-  segment: A should be lower or equal B.
+  segment: A should be lower or equal B. This is especially important if one of
+  both is given as diameter and the other as a height.
+* bug fix in uncertainty estimation of biomass for deciduous trees and requested
+  component 'ndl'.
 
 # TapeS 0.13.1
 
